@@ -84,5 +84,5 @@ Open-Meteo - Weather API
 
 Wikipedia API - Place information
 
-📝 License
+📝 License:
 This project is for educational and personal use.
