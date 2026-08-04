@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loc AI Chat</title>
+    <style>
+        /* MINIMAL DARK UI - Looks like a regular chat app */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #1a1a1a; color: #e0e0e0; margin: 0; 
+            display: flex; flex-direction: column; height: 100vh; 
+        }
+        .header { 
+            background: #2d2d2d; padding: 15px 20px; border-bottom: 1px solid #444;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header h2 { margin: 0; font-size: 18px; color: #00d4ff; }
+        .chat-container { 
+            flex: 1; overflow-y: auto; padding: 20px; display: flex; 
+            flex-direction: column; gap: 12px; padding-bottom: 80px; 
+        }
+        .msg { 
+            max-width: 75%; padding: 10px 15px; border-radius: 12px; 
+            line-height: 1.4; word-wrap: break-word; 
+        }
+        .user { align-self: flex-end; background: #007bff; color: white; }
+        .bot { align-self: flex-start; background: #333; color: #e0e0e0; }
+        .input-area { 
+            position: fixed; bottom: 0; left: 0; right: 0; background: #2d2d2d;
+            padding: 15px; border-top: 1px solid #444; display: flex; gap: 10px;
+        }
+        .input-area input { 
+            flex: 1; padding: 12px; border-radius: 25px; border: 1px solid #555;
+            background: #1a1a1a; color: white; outline: none; font-size: 15px;
+        }
+        .input-area input:focus { border-color: #007bff; }
+        .input-area button { 
+            padding: 0 25px; border-radius: 25px; border: none; background: #007bff;
+            color: white; font-weight: bold; cursor: pointer; font-size: 15px;
+        }
+        .input-area button:hover { background: #0056b3; }
+        
+        /* History Button Style */
+        .history-btn { 
+            background: #444; color: white; border: none; padding: 8px 15px; 
+            border-radius: 20px; cursor: pointer; font-size: 14px;
+        }
+        .history-btn:hover { background: #555; }
+        
+        /* Side Panel for History */
+        #historyPanel {
+            display: none; position: fixed; top: 60px; right: 0; bottom: 70px;
+            width: 300px; background: #222; border-left: 1px solid #444;
+            padding: 15px; overflow-y: auto; z-index: 10;
+        }
+        #historyPanel h3 { margin-top: 0; color: #00d4ff; }
+        .history-item { 
+            background: #333; padding: 8px; margin-bottom: 8px; border-radius: 6px;
+            font-size: 13px; border-left: 3px solid #007bff;
+        }
+        .history-item .role { font-weight: bold; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>🤖 Loc AI</h2>
+        <button class="history-btn" onclick="toggleHistory()">📜 History</button>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="msg bot">Hello! I'm Loc AI. Ask me about the weather, restaurants, or any place!</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="Type a message..." onkeypress="handleEnter(event)">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <!-- History Side Panel -->
+    <div id="historyPanel">
+        <h3>Chat History</h3>
+        <div id="historyList">
+            <div style="color:#777; font-size:14px;">No history saved yet.</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000/api/v1/chat";
+        const HISTORY_URL = "http://127.0.0.1:8000/api/v1/chat/history";
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const historyList = document.getElementById('historyList');
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Add User Message to UI
+            addMessage(message, 'user');
+            userInput.value = '';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                addMessage(data.answer, 'bot');
+            } catch (error) {
+                addMessage("Error connecting to server. Is the backend running?", 'bot');
+            }
+        }
+
+        function addMessage(text, role) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${role}`;
+            msgDiv.innerText = text;
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        // Toggle History Panel
+        function toggleHistory() {
+            const panel = document.getElementById('historyPanel');
+            if (panel.style.display === 'block') {
+                panel.style.display = 'none';
+            } else {
+                panel.style.display = 'block';
+                loadHistory();
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch(HISTORY_URL);
+                const data = await response.json();
+                
+                historyList.innerHTML = '';
+                if (data.history.length === 0) {
+                    historyList.innerHTML = '<div style="color:#777;">No history saved yet.</div>';
+                    return;
+                }
+
+                data.history.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+                    div.innerHTML = `<span class="role">${msg.role}:</span> ${msg.content}`;
+                    historyList.appendChild(div);
+                });
+            } catch (error) {
+                historyList.innerHTML = '<div style="color:#ff5555;">Error loading history.</div>';
+            }
+        }
+    </script>
+</body>
+</html>

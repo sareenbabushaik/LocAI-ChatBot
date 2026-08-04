@@ -1,0 +1,25 @@
+# requirements.txt - Windows Compatible
+
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Data Validation - Use pre-built wheels
+pydantic==2.4.2
+pydantic-core==2.10.1
+
+# HTTP Client
+requests==2.31.0
+
+# Ollama Client
+ollama==0.1.0
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Testing
+pytest==7.4.3
+httpx>=0.25.2,<0.26.0
+
+# JSON Logging
+python-json-logger==2.0.7
